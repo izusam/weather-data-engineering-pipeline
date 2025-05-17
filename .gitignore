@@ -1,2 +1,3 @@
 go-ingest/.env
+python-etl/.env
 Makefile

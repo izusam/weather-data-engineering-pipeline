@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: weather
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    ports:
+      - "2181:2181"
+
+  airflow:
+    image: apache/airflow:2.7.1-python3.11
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:password@postgres:5432/weather
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__WEBSERVER__WEB_SERVER_PORT: 8080
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    ports:
+      - "8080:8080"
+
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./metabase-data:/metabase-data
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+
+volumes:
+  pgdata:
